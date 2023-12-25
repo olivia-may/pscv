@@ -14,3 +14,9 @@ but should here "\004test"
 /* "\pC style comment" */
 "\020should work here"
 #define SHOULD_ALSO_WORK_HERE "\020should work here"
+// one \
+    two \
+    three \
+    four \        
+    "\pfive"
+"\004five"
