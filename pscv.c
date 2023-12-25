@@ -84,8 +84,11 @@ char *convert_to_octal_char_array(unsigned int number) {
 
 int main(int argc, char **argv) {
     
-    if (argc < 2)
+
+    if (argc < 2) {
+        fputs("usage: pscv FILE\n", stdout);
         return 1;
+    }
 
     if (access(argv[1], F_OK)) {
 
@@ -97,6 +100,7 @@ int main(int argc, char **argv) {
     FILE *file;
     int i, ch, char_count = 0;
     struct stat statinfo;
+    bool is_newline_escaped;
 
     stat(argv[1], &statinfo);
 
@@ -127,10 +131,50 @@ int main(int argc, char **argv) {
         char_count++; \
     }
 
-    for (i = 0; i < strlen(stream); i++) {
-        
-        if (!strncmp(&stream[i], "\"\\p", 3)) {
+
+    i = 0;
+    while (stream[i]) {
+       
+        char_count = 0;
+
+        // C++ style comments and macros
+        if (!strncmp(&stream[i], "//", 2)) {
             
+            is_newline_escaped = false;
+            
+            while (stream[i]) {
+
+                if (is_newline_escaped) {
+                    if (stream[i] == '\n') { i++; is_newline_escaped = false; }
+                    else if (stream[i] != ' ') is_newline_escaped = false;
+                    
+                }
+                else {
+                    if (stream[i] == '\\') is_newline_escaped = true;
+                    if (stream[i] == '\n') break;
+                }
+
+                i++;
+            }
+        }
+
+        // C style comments
+        if (!strncmp(&stream[i], "/*", 2)) {
+
+            while (stream[i]) {
+
+                if (!strncmp(&stream[i], "*/", 2)) {
+                 
+                    i += 2;
+                    break;
+                }
+ 
+                i++;
+            }
+        }
+
+        if (!strncmp(&stream[i], "\"\\p", 3)) {
+
             i += 3;
             
             COUNT_CHARS
@@ -145,7 +189,7 @@ int main(int argc, char **argv) {
                 char_count = 0;
             }
         }
-        else if (stream[i] == '"' && stream[i + 1] == '\\') {
+        if (!strncmp(&stream[i], "\"\\", 2)) {
             
             i += 2;
             
@@ -176,7 +220,8 @@ int main(int argc, char **argv) {
                 char_count = 0;
             }
         }
-    
+
+        i++;
     }
 
     fclose(file);
