@@ -20,3 +20,5 @@ but should here "\004test"
     four \        
     "\pfive"
 "\004five"
+"\004\n\n\n\'"
+"\004\n\"\'\t"

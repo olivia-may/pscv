@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
 
     char *stream;
     FILE *file;
-    int i, ch, char_count = 0;
+    int i, j, ch, char_count = 0;
     struct stat statinfo;
     bool is_newline_escaped;
 
@@ -124,10 +124,17 @@ int main(int argc, char **argv) {
     stream[i] = '\0';
 
 #define COUNT_CHARS \
-    while (true) { \
+    j = 0; \
+    while (stream[i + j]) { \
 \
-        if (stream[i + char_count] == '"') break; \
-        if (!stream[i + char_count]) break; \
+        if (stream[i + j] == '"' && \
+            stream[i + j - 1] != '\\') break; \
+        if (stream[i + j] == '\\') { \
+            j++; \
+            continue; \
+        } \
+\
+        j++; \
         char_count++; \
     }
 
@@ -173,51 +180,53 @@ int main(int argc, char **argv) {
             }
         }
 
-        if (!strncmp(&stream[i], "\"\\p", 3)) {
+        if (stream[i - 1] != '\\') {
+            if (!strncmp(&stream[i], "\"\\p", 3)) {
 
-            i += 3;
-            
-            COUNT_CHARS
-
-            i--;
-            
-            // if there's no chars after \nnn, then dont do anything
-            if (char_count) {
-                remove_chars(&stream[i], 1);
-                stream = insert_string(stream, i,
-                    convert_to_octal_char_array(char_count));
-                char_count = 0;
-            }
-        }
-        if (!strncmp(&stream[i], "\"\\", 2)) {
-            
-            i += 2;
-            
-            // count octal digits already there, ex. \2 \22 or \222
-            while (true) {
+                i += 3;
                 
-                if (char_count > 2) break;
-                if (!stream[i + char_count]) break;
-                
-                // if not ascii 0 to 9
-                if (stream[i + char_count] < 48 ||
-                    stream[i + char_count] > 57) break;
-
-                char_count++;
-            }
-            
-            // if there's no chars after \nnn, \nn or \n, then dont do anything
-            if (stream[i + char_count] != '"') {
-            
-                remove_chars(&stream[i], char_count);
-                
-                char_count = 0;
-
                 COUNT_CHARS
 
-                stream = insert_string(stream, i,
-                    convert_to_octal_char_array(char_count));
-                char_count = 0;
+                i--;
+                
+                // if there's no chars after \nnn, then dont do anything
+                if (char_count) {
+                    remove_chars(&stream[i], 1);
+                    stream = insert_string(stream, i,
+                        convert_to_octal_char_array(char_count));
+                    char_count = 0;
+                }
+            }
+            if (!strncmp(&stream[i], "\"\\", 2)) {
+                
+                i += 2;
+                
+                // count octal digits already there, ex. \2 \22 or \222
+                while (true) {
+                    
+                    if (char_count > 2) break;
+                    if (!stream[i + char_count]) break;
+                    
+                    // if not ascii 0 to 9
+                    if (stream[i + char_count] < 48 ||
+                        stream[i + char_count] > 57) break;
+
+                    char_count++;
+                }
+                
+                // if there's no chars after \nnn, \nn or \n, then dont do anything
+                if (stream[i + char_count] != '"') {
+                
+                    remove_chars(&stream[i], char_count);
+                    
+                    char_count = 0;
+
+                    COUNT_CHARS
+
+                    stream = insert_string(stream, i,
+                        convert_to_octal_char_array(char_count));
+                    char_count = 0;
+                }
             }
         }
 
